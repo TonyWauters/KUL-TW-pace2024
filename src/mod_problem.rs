@@ -148,6 +148,10 @@ impl Problem{
         for edge in edges.iter(){
             neighbors[(edge.1-n_fixed_vertices) as usize].push(edge.0);
         }
+        //assume sorted neighbors
+        /*for i in 0..n_free_vertices{
+            neighbors[i as usize].sort_by(|a, b| a.cmp(b));
+        }*/
 
         //calculate crossing matrix
         /*for i in 0..n_free_vertices{

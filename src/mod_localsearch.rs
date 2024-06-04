@@ -1,4 +1,6 @@
 use std::cmp::{max, min};
+use std::fs::File;
+use std::io::Write;
 use std::time::{Duration, Instant};
 use crate::mod_problem::Problem;
 use crate::mod_solution::Solution;
@@ -6,7 +8,7 @@ use crate::mod_solution::Solution;
 
 const SEED: u64 = 123456789;
 
-pub fn run_simulated_annealing(problem:&Problem, initial_solution:Solution,verbose:bool,time_limit_secs:u64,now:Instant)->Solution{
+pub fn run_simulated_annealing(problem:&Problem, initial_solution:Solution,verbose:bool,time_limit_secs:u64,now:Instant)->(Solution,f64){
     fastrand::seed(SEED); //fix seed
 
     if verbose {
@@ -14,7 +16,7 @@ pub fn run_simulated_annealing(problem:&Problem, initial_solution:Solution,verbo
     }
 
 
-    let window:i32 = 15000;
+    let window:i32 = 1000;
 
     let mut outer_iterations = 0;
     let mut temperature = 100.0;
@@ -101,99 +103,152 @@ pub fn run_simulated_annealing(problem:&Problem, initial_solution:Solution,verbo
         println!("Finished local search");
     }
 
-    best_solution
+    (best_solution,best_obj)
 }
 
 
 
+pub fn run_full_SD_first_improvement(problem:&Problem, initial_solution:Solution, verbose:bool, time_limit_secs:u64, now:Instant) ->(Solution, f64){
+    let mut current_solution = initial_solution.clone();
+    let mut current_obj = 0.0;//current_solution.calculate_total_crossings(problem);
+
+    let mut improved:bool = true;
+
+    let mut iterations = 0;
+
+    // Create a file
+    //let mut progress = File::create("stats-firstimpr-sd.txt".clone()).expect("creation failed");
+
+
+    while improved && now.elapsed()<Duration::from_secs(time_limit_secs){
+        iterations+=1;
+        improved=false;
+
+            for i in 0..problem.n_free_vertices-1{
+                //forward
+                    let j = i + 1;
+                    let delta = current_solution.calculate_move_delta(problem, i, j);
+                    if delta < 0.0 {
+                        current_obj = current_obj + delta;
+                        current_solution.do_move(i, j);
+                        if verbose {
+                            println!("{} Forward MOVE Found a better solution: {}", iterations, current_obj);
+                            //let s0 = format!("{},{}\n",iterations,current_obj);
+                            //progress.write(s0.as_bytes()).expect("write failed");
+                        }
+                        improved=true;
+                        break;
+                    }
+
+            }
+    }
+
+    if (verbose){
+        println!("Finished local search");
+    }
+
+    (current_solution,current_obj)
+}
+
+pub fn run_full_SD_first_improvement_cont(problem:&Problem, initial_solution:Solution, verbose:bool, time_limit_secs:u64, now:Instant) ->(Solution, f64){
+    let mut current_solution = initial_solution.clone();
+    let mut current_obj = 0.0;//current_solution.calculate_total_crossings(problem);
+
+    let mut improved:bool = true;
+    //let mut improved_since_reset=true;
+
+    let mut iterations = 0;
+
+    // Create a file
+    //let mut progress = File::create("stats-firstimpr-sd.txt".clone()).expect("creation failed");
+
+
+    let mut k = 1;
+
+
+    while improved && now.elapsed()<Duration::from_secs(time_limit_secs){
+        iterations+=1;
+        improved=false;
+
+        for i in 0..problem.n_free_vertices-k{
+            //forward
+                let j = i + k;
+                let delta = current_solution.calculate_move_delta(problem, i, j);
+                if delta < 0.0 {
+                    current_obj = current_obj + delta;
+                    current_solution.do_move(i, j);
+                    if verbose {
+                        println!("{} Forward{} MOVE Found a better solution: {} time:{:?}", iterations,k, current_obj,now.elapsed());
+                        //let s0 = format!("{},{}\n",iterations,current_obj);
+                        //progress.write(s0.as_bytes()).expect("write failed");
+                    }
+                    improved=true;
+                    //improved_since_reset=true;
+                }
+        }
+        /*if !improved{
+            k+=1;
+            if k>=3{
+                if !improved_since_reset{
+                    break;
+                }
+                //reset;
+                k=1;
+                improved_since_reset=false;
+            }
+            improved=true;
+        }*/
+    }
+
+
+    if (verbose){
+        println!("Finished local search");
+    }
+
+    (current_solution,current_obj)
+}
+
 /*pub fn run_full_SD(problem:&Problem, initial_solution:Solution,verbose:bool)->Solution{
     let mut current_solution = initial_solution.clone();
     let mut best_solution = current_solution.clone();
-    let mut current_obj = current_solution.calculate_total_crossings(problem);
+    let mut current_obj = 0.0;//current_solution.calculate_total_crossings(problem);
     let mut best_obj = current_obj;
 
     let mut improved:bool = true;
 
     let mut iterations = 0;
 
+    // Create a file
+    let mut progress = File::create("stats-firstimpr-sd.txt".clone()).expect("creation failed");
+
 
     while improved {
         iterations+=1;
         improved=false;
 
+        for i in 0..problem.n_free_vertices{
+            //forward
+            if i<problem.n_free_vertices-1{
+                let j = i + 1;
+                let delta = current_solution.calculate_move_delta(problem, i, j);
+                if delta < 0.0 {
+                    let new_objective = current_obj + delta;
 
-            for i in 0..problem.n_free_vertices{
-                for j in 0..problem.n_free_vertices{
-                    if (i==j){
-                        continue;
-                    }
-                    let delta = current_solution.calculate_move_delta(problem,i,j);
-                    if delta<0{
-                        let new_objective = (current_obj as i32 + delta) as u32;
-
-                        //check calculation with full calculation
-                        /*let mut new_solution = current_solution.clone();
-                        new_solution.do_move(i, j);
-                        let mut full_obj = new_solution.calculate_total_crossings(problem);
-                        if new_objective!=full_obj{
-                            panic!("Error in calculation of delta crossings! {} {}",new_objective,full_obj);
-                        }*/
-
-
-                        if new_objective<best_obj{
-                            best_obj = new_objective;
-                            best_solution = current_solution.clone();
-                            best_solution.do_move(i, j);
-                            if verbose {
-                                println!("{} MOVE Found a better solution: {}",iterations, best_obj);
-                            }
+                    if new_objective < best_obj {
+                        best_obj = new_objective;
+                        best_solution = current_solution.clone();
+                        best_solution.do_move(i, j);
+                        if verbose {
+                            println!("{} Forward MOVE Found a better solution: {}", iterations, best_obj);
+                            let s0 = format!("{},{}\n",iterations,best_obj);
+                            progress.write(s0.as_bytes()).expect("write failed");
                         }
-                        improved=true;
                     }
+                    improved = true;
                 }
             }
-
-
-        if !improved{
-            println!("Starting swap phase");
-            for i in 0..problem.n_free_vertices-1{
-                for j in i+1..problem.n_free_vertices{
-                    let delta = current_solution.calculate_swap_delta(problem,i,j);
-                    if delta<0{
-                        let new_objective = (current_obj as i32 + delta) as u32;
-                        if new_objective<best_obj{
-                            best_obj = new_objective;
-                            best_solution = current_solution.clone();
-                            best_solution.do_swap(i, j);
-                            if verbose {
-                                println!("{} SWAP Found a better solution: {}",iterations, best_obj);
-                            }
-                        }
-                        improved=true;
-                    }
-                }
-            }
-        }
-
-
-        if !improved{
-            println!("Starting inverse phase");
-            for i in 0..problem.n_free_vertices-1{
-                for j in i+1..problem.n_free_vertices{
-                    let delta = current_solution.calculate_inverse_delta(problem,i,j);
-                    if delta<0{
-                        let new_objective = (current_obj as i32 + delta) as u32;
-                        if new_objective<best_obj{
-                            best_obj = new_objective;
-                            best_solution = current_solution.clone();
-                            best_solution.do_inverse(i as usize, j as usize);
-                            if verbose {
-                                println!("{} INVERSE Found a better solution: {}",iterations, best_obj);
-                            }
-                        }
-                        improved=true;
-                    }
-                }
+            if improved{
+                break;
             }
         }
 
@@ -205,6 +260,10 @@ pub fn run_simulated_annealing(problem:&Problem, initial_solution:Solution,verbo
             current_obj = best_obj;
         }
     }
+    if (verbose){
+        println!("Finished local search");
+    }
+
     best_solution
 }*/
 
