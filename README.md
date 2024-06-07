@@ -18,4 +18,5 @@ All required dependencies are defined in the Cargo.toml file.
 ## Contact
 
 Tony Wauters (tony.wauters@kuleuven.be)
+Fabien Nießen (fabien.niessen@kuleuven.be)
 KU Leuven
