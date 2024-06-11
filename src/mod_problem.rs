@@ -1,3 +1,4 @@
+use std::cmp::min;
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
@@ -201,6 +202,19 @@ impl Problem{
             }
         }
         crossings_ij
+    }
+
+    /**
+    * Calculate lower bound
+    **/
+    pub fn calculate_LB(&self) -> u64 {
+        let mut lb:u64 = 0;
+        for i in 0..self.n_free_vertices-1{
+            for j in i+1..self.n_free_vertices{
+                lb+=min(self.calculate_crossing_ij(i,j),self.calculate_crossing_ij(j,i)) as u64;
+            }
+        }
+        lb
     }
 
     /**chatgpt version :-)

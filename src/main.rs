@@ -16,10 +16,10 @@ mod mod_localsearch;
 fn main() {
 
     //this runs the code ready for the optil.io platform
-    run_submission_optilio();
+    //run_submission_optilio();
 
     //run this if you want to run the benchmark
-    //run_benchmark();
+    run_benchmark();
     
 }
 
@@ -56,7 +56,7 @@ fn run_submission_optilio() {
 fn run_benchmark(){
 
     let verbose = false;
-    let time_limit_in_seconds = 275;
+    let time_limit_in_seconds = 300;
 
     //let list_of_instances = vec![1,2,3,4,5,6,7,8,9,10,44];
 
@@ -130,12 +130,14 @@ fn run_benchmark(){
 
 
 
+        let LB = problem.calculate_LB();
+
         /*let opt_solution_path = format!("data/medium-test-set/solutions/{}_OPT.sol",instance_id);
         let opt_solution = Solution::load_solution(opt_solution_path.as_str(),&problem);
         //opt_solution.print_order();
         let opt_total_crossings = opt_solution.calculate_total_crossings(&problem);
         //println!("Total optimal crossings: {}", opt_total_crossings);*/
 
-        println!("{} {} {:.2?} {}",instance_id,ls_obj,elapsed,sufix);
+        println!("{} {} {} {:.2?} {}",instance_id,LB,ls_obj,elapsed,sufix);
     }
 }
